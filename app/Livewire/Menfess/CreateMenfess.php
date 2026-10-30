@@ -77,7 +77,7 @@ class CreateMenfess extends Component
                 theme: ['background' => $this->safeCanvasBackground()],
             );
         } catch (\RuntimeException) {
-            throw ValidationException::withMessages(['preview' => 'Preview gagal dibuat. Periksa konfigurasi Chromium dan Cloudinary.']);
+            throw ValidationException::withMessages(['preview' => 'Preview gagal dibuat. Periksa konfigurasi image renderer, font, dan Cloudinary.']);
         } finally {
             if ($sourcePath) {
                 Storage::disk('local')->delete($sourcePath);

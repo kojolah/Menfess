@@ -117,17 +117,40 @@ Setelah mengubah environment, jalankan `php artisan config:clear` (atau rebuild 
 
 - Queue tersimpan di MySQL secara default. Worker harus selalu hidup agar publikasi terjadwal dan pekerjaan antrean diproses.
 - Foto sumber menfess disimpan pada disk `local` privat. PNG hasil render selalu diunggah ke Cloudinary; file PNG hanya sementara di direktori temp server sebelum dihapus.
-- Node dijalankan dari PHP menggunakan `NODE_BINARY`; Playwright Chromium perlu dipasang untuk user/service yang menjalankan worker web. Contoh: `npx playwright install chromium`.
-- Renderer membentuk dokumen sendiri, meng-escape teks dan tidak mengeksekusi JavaScript yang dikirim pengguna.
+- `MenfessImageRenderer` tetap menjadi entry point yang dipakai preview, penyimpanan gambar, dan `ProcessPublication`. Pilih engine melalui `IMAGE_RENDERER`: `playwright` mempertahankan renderer lama, sedangkan `imagick` memakai `ImagickMenfessImageRenderer`, `MenfessTextLayout`, dan `FontManager`. Renderer lama disimpan sebagai jalur rollback selama validasi hosting.
+- Engine Imagick membuat layout langsung di PHP (tanpa Node, Chromium, `proc_open`, atau shell). Output portrait Instagram dipatok 1080×1350, square 1080×1080, X landscape 1200×675. Teks dibungkus dengan metrik font dan ukuran diturunkan sampai batas yang ditentukan; menfess panjang tetap dibagi ke slide seperti sebelumnya. Foto diputar mengikuti EXIF, di-crop ke area rounded, lalu hasil PNG diunggah melalui `CloudinaryMediaStorage`. PNG dapat dikonversi ke JPEG dengan `IMAGE_RENDERER_QUALITY` (default 95) bila consumer membutuhkan JPEG.
+- `MENFESS_CANVAS_BACKGROUNDS` tetap menjadi palet random per Menfess; `MENFESS_CANVAS_BACKGROUND` fallback dan `MENFESS_CANVAS_ACCENT` accent terpisah. Warna terpilih dari `metadata.canvas_background` dipakai untuk preview/final render. Template/kategori tidak menentukan warna latar.
+- Font yang diutamakan adalah Inter Regular/Bold di `resources/fonts/Inter-Regular.ttf` dan `resources/fonts/Inter-Bold.ttf`; quote memakai Georgia atau DejaVu Serif. Atur `MENFESS_FONT_REGULAR`, `MENFESS_FONT_BOLD`, dan `MENFESS_FONT_SERIF` ke path absolut jika diletakkan di lokasi lain. Inter berlisensi SIL Open Font License; ambil dari distribusi resmi dan sertakan file lisensi ketika menyalin font. Linux DejaVu Sans dan macOS Arial menjadi fallback lokal, bukan jaminan font tersedia di cPanel. Emoji hanya tampil jika font/ImageMagick host memiliki glyph terkait.
+
+#### Aktivasi Imagick di hosting
+
+Jangan set `IMAGE_RENDERER=imagick` sebelum semua poin ini dikonfirmasi untuk PHP web **dan** PHP CLI/worker yang digunakan:
+
+1. PHP versi yang sama dengan aplikasi (PHP 8.3+), ekstensi `imagick` aktif (`php --ri imagick`) dan `Imagick::getVersion()` menunjukkan ImageMagick 6.5.3-10+; ImageMagick 7.x yang dipelihara lebih disarankan. Ekstensi harus dibangun untuk versi/API PHP tersebut, bukan sekadar binary `magick` yang tersedia.
+2. ImageMagick mengizinkan baca JPEG/PNG/WebP, tulis PNG, font type/truetype, alpha channel, blur, dan operasi crop/composite. Minta provider memeriksa policy/resources untuk ukuran 1080×1350 dan foto maksimal 5 MB; tidak perlu mengaktifkan delegate/format berbahaya yang tidak digunakan.
+3. Font Inter Regular/Bold terbaca oleh user PHP di path yang dikonfigurasi. Pastikan `sys_get_temp_dir()` writable dan kapasitas memory/process cukup untuk membuat layer canvas, shadow, dan foto.
+4. Extension yang sama tersedia pada PHP-FPM/web, CLI, dan queue worker. Uji queue worker memakai binary PHP yang benar; `php --ri imagick` via SSH saja belum membuktikan PHP web memakai versi yang sama.
+5. Cloudinary tetap menjadi storage hasil akhir dan harus dapat menerima PNG. Renderer hanya memakai temp file lokal selama render, kemudian menghapusnya.
+
+Urutan cut-over: pasang extension + font, isi variabel font (jika perlu), jalankan tes/unit dan feature renderer di host staging, buat perbandingan screenshot pada konten dan foto yang sama, verifikasi upload Cloudinary serta satu publication job uji yang belum pernah terbit, baru set `IMAGE_RENDERER=imagick` dan bersihkan config cache. Jangan retry job berstatus published/needs_review yang mungkin sudah terkirim ke platform tanpa verifikasi status eksternal terlebih dulu.
+
+#### Troubleshooting dan rollback renderer
+
+- `PHP Imagick tidak tersedia`: aktifkan extension pada PHP web/CLI yang tepat, restart worker, lalu jalankan `php artisan config:clear` dan pemeriksaan `php --ri imagick`.
+- `Font renderer tidak ditemukan`: unggah Inter Regular/Bold beserta lisensinya, atur `MENFESS_FONT_REGULAR`/`MENFESS_FONT_BOLD`, pastikan file readable oleh user PHP, dan clear config cache.
+- Error format/policy atau memory: minta provider meninjau dukungan JPEG/PNG/WebP, ImageMagick policy, memory limit dan temp directory; jangan memperlebar policy secara umum tanpa kebutuhan.
+- Untuk rollback sementara, ubah `IMAGE_RENDERER=playwright`, jalankan `php artisan config:clear`, dan pastikan worker memakai config baru. Jalur ini masih memerlukan Node/Playwright/Chromium. Kode/script lama belum dihapus.
+
+Playwright runtime lama membutuhkan Node dan Chromium. Ia tetap ada hanya untuk rollback selama Imagick belum lulus visual comparison dan tes host-level; build frontend tetap menggunakan Node terpisah dari renderer backend.
 
 ### Catatan deploy di cPanel
 
-cPanel berbeda antar-provider. Sebelum upload, minta provider mengonfirmasi PHP 8.3+ beserta ekstensi Composer yang diperlukan, SSH/Terminal dan Composer, database MySQL, Node yang kompatibel, Chromium/Playwright beserta dependensi sistem, serta cara menjalankan queue worker yang terus hidup. Renderer PNG menjalankan Chromium di server; tanpa dukungan tersebut generator dan publikasi tidak akan siap production.
+cPanel berbeda antar-provider. Untuk jalur Imagick, minta provider mengonfirmasi ekstensi PHP Imagick dan library ImageMagick yang cocok dengan PHP web/CLI, font yang dapat dibaca, policy resource/format serta cara menjalankan queue worker. Playwright masih menjadi rollback sementara dan memerlukan Node/Chromium apabila dipilih.
 
 - Simpan source Laravel di luar document root, misalnya `/home/<akun>/menfess`, dan arahkan document root domain ke `/home/<akun>/menfess/public`. Jangan menaruh `.env`, `vendor`, atau keseluruhan source di area publik. Untuk domain utama, cPanel mungkin tidak mengizinkan perubahan document root; minta provider mengatur vhost dengan aman. Lihat [panduan cPanel untuk document root domain](https://docs.cpanel.net/cpanel/domains/domains/manage-the-domain/).
-- Pilih PHP 8.3 atau lebih baru di MultiPHP Manager. Via SSH jalankan `composer install --no-dev --prefer-dist --optimize-autoloader`, `npm ci`, dan `npm run build`; Node hanya diperlukan saat membangun frontend, tetapi renderer juga membutuhkan Node dan Playwright saat runtime.
+- Pilih PHP 8.3 atau lebih baru di MultiPHP Manager. Via SSH jalankan `composer install --no-dev --prefer-dist --optimize-autoloader`, `npm ci`, dan `npm run build`; Node diperlukan untuk build frontend, sedangkan runtime rendering memakai Imagick setelah tervalidasi.
 - Buat database/user MySQL di cPanel, isi `.env` di direktori aplikasi dengan nilai production termasuk tiga kredensial Cloudinary, lalu jalankan `php artisan migrate --force`, `php artisan config:cache`, dan `php artisan optimize`. `storage:link` tidak diperlukan untuk alur gambar menfess ini. Jangan salin `.env` ke `public_html`.
-- Uji alur render end-to-end dari aplikasi dengan Chromium milik akun hosting. Script renderer membaca payload JSON dari stdin, jadi jangan menjalankannya tanpa payload. Lokasi binary Node/Chromium dapat berbeda; sesuaikan `NODE_BINARY` dan konfigurasi Playwright jika provider memakai path khusus. Jangan menganggap keberhasilan build Vite membuktikan renderer backend siap.
+- Sebelum cut-over, jalankan tes renderer dari worker/CLI hosting dan bandingkan hasil dengan referensi visual. Keberadaan extension pada CLI saja tidak memastikan PHP-FPM memilikinya; jangan menganggap keberhasilan build Vite membuktikan renderer backend siap.
 - Pastikan Cloudinary dikonfigurasi dan satu gambar uji berhasil diunggah sehingga Meta dapat mengambil `secure_url` Cloudinary melalui HTTPS. Jangan mengandalkan URL localhost atau disk `public` hosting untuk publikasi Meta.
 - Jalankan queue worker persisten melalui supervisor/process manager yang disediakan provider. Jika paket hanya mengizinkan cron, sepakati command `queue:work --stop-when-empty` dengan interval dan lock anti-overlap dari provider; jadwalkan `php artisan schedule:run` setiap menit sesuai [dokumentasi cron cPanel](https://docs.cpanel.net/cpanel/advanced/cron-jobs/). Jangan menjalankan dua worker tanpa kontrol.
 - Aktifkan HTTPS/SSL, set domain `APP_URL`, OAuth callback Google, dan webhook Midtrans. Simpan token Meta hanya di environment/secret cPanel, lalu verifikasi secara manual menggunakan akun uji sebelum mengubah `PUBLISHER_MODE=live`.

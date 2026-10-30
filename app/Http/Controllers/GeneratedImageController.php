@@ -28,7 +28,7 @@ class GeneratedImageController extends Controller
         try {
             $images = $renderer->persistFor($menfess, $validated['format'], $template);
         } catch (RuntimeException) {
-            return back()->withErrors(['render' => 'Gambar tidak dapat dibuat. Periksa konfigurasi Chromium dan Cloudinary.']);
+            return back()->withErrors(['render' => 'Gambar tidak dapat dibuat. Periksa konfigurasi image renderer, font, dan Cloudinary.']);
         }
 
         return back()->with('notice', count($images).' gambar PNG berhasil dibuat.');
