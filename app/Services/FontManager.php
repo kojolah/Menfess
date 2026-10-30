@@ -11,7 +11,7 @@ class FontManager
         $configuredPath = config('menfess.image_fonts.'.$weight);
         $fontName = match ($weight) {
             'bold' => 'Inter-Bold',
-            'serif' => 'Georgia',
+            'serif' => 'Inter-Regular',
             default => 'Inter-Regular',
         };
         $candidates = array_filter([
@@ -19,12 +19,12 @@ class FontManager
             resource_path('fonts/'.$fontName.'.ttf'),
             match ($weight) {
                 'bold' => '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-                'serif' => '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+                'serif' => '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
                 default => '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
             },
             match ($weight) {
                 'bold' => '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
-                'serif' => '/System/Library/Fonts/Supplemental/Georgia.ttf',
+                'serif' => '/System/Library/Fonts/Supplemental/Arial.ttf',
                 default => '/System/Library/Fonts/Supplemental/Arial.ttf',
             },
         ]);
