@@ -5,6 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name') }}</title>
+
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Unwarfess — Voice of Warmadewa Students">
+    <meta name="description" content="Unwarfess adalah platform menfess otomatis untuk mahasiswa Universitas Warmadewa. Kirim pesan dan menfess secara anonim ke Instagram dan X melalui satu platform.">
+    <meta name="keywords" content="Unwarfess, Warmadewa, menfess Warmadewa, menfess Bali, confession mahasiswa, menfess anonim, mahasiswa Universitas Warmadewa">
+    <meta name="author" content="Unwarfess">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="Indonesian">
+    <meta name="theme-color" content="#6366F1">
+
+    <link rel="canonical" href="https://unwarfess.my.id/">
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://unwarfess.my.id/">
+    <meta property="og:site_name" content="Unwarfess">
+    <meta property="og:title" content="Unwarfess — Voice of Warmadewa Students">
+    <meta property="og:description" content="Your voice, your space. Kirim menfess secara anonim ke X dan Instagram melalui Unwarfess. Voice of Warmadewa students.">
+    <meta property="og:image" content="{{ asset('og.png') }}">
+    <meta property="og:image:secure_url" content="{{ asset('og.png') }}">
+    <meta property="og:image:alt" content="Unwarfess — Voice of Warmadewa Students">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="id_ID">
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://unwarfess.my.id/">
+    <meta name="twitter:title" content="Unwarfess — Voice of Warmadewa Students">
+    <meta name="twitter:description" content="Your voice, your space. Kirim menfess secara anonim ke X dan Instagram melalui Unwarfess.">
+    <meta name="twitter:image" content="{{ asset('og.png') }}">
+    <meta name="twitter:image:alt" content="Unwarfess — Voice of Warmadewa Students">
+
+    <!-- Mobile Optimization -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Unwarfess">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
+
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
