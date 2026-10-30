@@ -15,7 +15,10 @@ use Throwable;
 
 class PlaywrightMenfessImageRenderer
 {
-    public function __construct(private readonly CloudinaryMediaStorage $mediaStorage) {}
+    public function __construct(
+        private readonly CloudinaryMediaStorage $mediaStorage,
+        private readonly MenfessPublicDomainResolver $domainResolver,
+    ) {}
 
     /** @var array<string, array{width: int, height: int}> */
     private const FORMATS = [
@@ -168,7 +171,7 @@ class PlaywrightMenfessImageRenderer
             'photo_data_uri' => $photoUri,
             'brand_name' => $theme['brand_name'] ?? config('menfess.brand_name'),
             'username' => $theme['username'] ?? config('menfess.social_username'),
-            'domain' => $theme['domain'] ?? config('app.url'),
+            'domain' => $this->domainResolver->resolve($theme),
             'date_label' => now(config('app.timezone', 'Asia/Jakarta'))->locale('id')->translatedFormat('d F Y · H:i'),
             'theme' => [
                 'background' => $theme['background'] ?? config('menfess.canvas_background'),

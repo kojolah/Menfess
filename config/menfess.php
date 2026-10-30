@@ -12,6 +12,7 @@ return [
     'publisher_mode' => env('PUBLISHER_MODE', 'simulation'),
     'brand_name' => env('MENFESS_BRAND_NAME', 'Ruang Kirim'),
     'social_username' => env('MENFESS_SOCIAL_USERNAME', '@ruangkirim'),
+    'public_domain' => env('MENFESS_PUBLIC_DOMAIN'),
     'canvas_background' => env('MENFESS_CANVAS_BACKGROUND', '#F6DDE8'),
     'canvas_backgrounds' => array_values(array_filter(array_map('trim', explode(',', (string) env('MENFESS_CANVAS_BACKGROUNDS', '#F6DDE8,#DCEBFA,#DDF2E5'))))),
     'canvas_accent' => env('MENFESS_CANVAS_ACCENT', '#DCEBFA'),

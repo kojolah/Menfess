@@ -28,6 +28,7 @@ class ImagickMenfessImageRenderer
         private readonly CloudinaryMediaStorage $mediaStorage,
         private readonly FontManager $fontManager,
         private readonly MenfessTextLayout $textLayout,
+        private readonly MenfessPublicDomainResolver $domainResolver,
     ) {}
 
     public function assertAvailable(): void
@@ -419,14 +420,13 @@ class ImagickMenfessImageRenderer
             $textWidth = (float) ($image->queryFontMetrics($draw, $text)['textWidth'] ?? 0);
         }
         $draw->setFillColor('#8A94A5');
-        $metrics = $image->queryFontMetrics($draw, 'Ag');
         $image->annotateImage($draw, (int) round($left + $width - $textWidth), $baseline, 0, $text);
     }
 
     private function drawFooter(Imagick $image, string $font, int $left, int $baseline, int $width, ?array $theme, float $scale): void
     {
         $fontSize = (int) round(16 * $scale);
-        $domain = (string) ($theme['domain'] ?? config('app.url'));
+        $domain = $this->domainResolver->resolve($theme);
         $username = (string) ($theme['username'] ?? config('menfess.social_username'));
         $this->annotate($image, $font, $fontSize, '#58657E', $left, $baseline, $domain);
         $draw = new ImagickDraw;
