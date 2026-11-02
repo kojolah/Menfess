@@ -21,14 +21,17 @@ class UserDashboardController extends Controller
             'user' => $user,
             'menfessCount' => (int) $statusCounts->sum(),
             'moderationCount' => (int) $statusCounts->get('moderation_pending', 0),
+            'instagramCount' => $user->menfesses()->whereJsonContains('platforms', 'instagram')->count(),
+            'xCount' => $user->menfesses()->whereJsonContains('platforms', 'x')->count(),
             'walletBalance' => (int) ($user->wallet?->balance ?? 0),
+            'tokenCosts' => config('menfess.publication_token_costs', ['instagram' => 2, 'x' => 1]),
             'publicationQuote' => app(PublicationEligibilityService::class)->quote($user, ['instagram']),
             'latestPublication' => PublicationJob::query()
                 ->whereHas('menfess', fn ($query) => $query->where('user_id', $user->id))
                 ->latest('created_at')
                 ->first(),
             'recentTransactions' => $user->wallet?->transactions()->latest()->limit(5)->get() ?? collect(),
-            'recentMenfesses' => $user->menfesses()->with('category')->latest()->limit(5)->get(),
+            'recentMenfesses' => $user->menfesses()->with(['category', 'publicationJobs'])->latest()->limit(5)->get(),
         ]);
     }
 }
